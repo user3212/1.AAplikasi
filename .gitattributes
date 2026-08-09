@@ -1,0 +1,18 @@
+# Auto-detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Explicitly mark binary files to prevent Git from converting CRLF/LF line endings in binaries
+*.jar binary
+*.zip binary
+*.apk binary
+*.aab binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.keystore binary
+*.jks binary
+*.db binary
+
+# Executables and wrapper scripts
+gradlew text eol=lf
+gradlew.bat text eol=crlf
