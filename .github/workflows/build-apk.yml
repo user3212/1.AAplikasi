@@ -36,11 +36,28 @@ jobs:
           echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
           /opt/gradle-${GRADLE_VERSION}/bin/gradle --version
 
+      - name: Create CI debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -genkeypair \
+            -v \
+            -keystore "${GITHUB_WORKSPACE}/debug.keystore" \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          test -f "${GITHUB_WORKSPACE}/debug.keystore"
+          ls -lh "${GITHUB_WORKSPACE}/debug.keystore"
+
       - name: Build Release APK
-        # The repository Gradle Wrapper JAR is currently rejected by GitHub's
-        # wrapper validation. Use the official Gradle 9.3.1 distribution directly
-        # so the APK build is not blocked by that stale/corrupt wrapper JAR.
-        # Keep the conservative CI flags to reduce KSP/IDE-state and memory issues.
+        # The repository Gradle Wrapper JAR is rejected by GitHub wrapper validation,
+        # so CI uses the official Gradle 9.3.1 distribution directly.
+        # The generated debug keystore is only a CI fallback for an installable
+        # test artifact; production release signing should use a protected key.
         run: |
           gradle clean assembleRelease \
             --no-daemon \
