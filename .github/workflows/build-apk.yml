@@ -26,10 +26,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Make gradlew executable & validate wrapper jar
+      - name: Make gradlew executable
         run: |
           chmod +x gradlew
           if ! jar tf gradle/wrapper/gradle-wrapper.jar > /dev/null 2>&1; then
