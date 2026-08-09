@@ -21,32 +21,21 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          # We don't use the built-in cache here because we use setup-gradle instead for better reliability
+          cache: 'gradle'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          # Disabling cache prevents KSP and corrupted state issues across different builds
-          cache-disabled: true
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
-      - name: Make gradlew executable & Validate Wrapper
-        run: |
-          chmod +x gradlew
-          if ! jar tf gradle/wrapper/gradle-wrapper.jar > /dev/null 2>&1; then
-            echo "Warning: gradle-wrapper.jar appears corrupt or invalid. Regenerating wrapper..."
-            gradle wrapper --gradle-version 9.3.1 --distribution-type bin
-          fi
-
-      - name: Build Release APK (Failsafe Configuration)
+      - name: Build Release APK
         # To fix the KSP "ApplicationManager.getApplication() is null" error in GitHub Actions:
         # 1. --no-daemon: Prevents lingering daemon state issues.
-        # 2. --no-parallel: Prevents KSP tasks from racing and crashing the shared IntelliJ environment.
-        # 3. --no-configuration-cache: Configuration cache on CI often causes KSP serialization bugs.
+        # 2. --no-parallel: Prevents KSP tasks from racing.
+        # 3. --no-configuration-cache: Configuration cache on CI often causes KSP bugs.
         # 4. -Pkotlin.compiler.execution.strategy=out-of-process: Forces Kotlin compiler to run isolated.
-        # 5. --max-workers=2: Limits concurrency to prevent OOM kills on standard GitHub runners.
+        # 5. --max-workers=2: Limits concurrency to prevent OOM kills.
         run: ./gradlew clean assembleRelease --no-daemon --no-parallel --no-configuration-cache --max-workers=2 -Pkotlin.compiler.execution.strategy=out-of-process -Dorg.gradle.jvmargs="-Xmx5g -XX:+UseG1GC"
 
       - name: Upload Release APK Artifact
