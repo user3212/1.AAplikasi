@@ -1,4 +1,4 @@
-name: Production Release APK
+name: Guruqu Production Release APK
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   release:
-    name: Build Production Release APK
+    name: Build Guruqu Production Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -34,6 +34,17 @@ jobs:
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
           /opt/gradle-${GRADLE_VERSION}/bin/gradle --version
+
+      - name: Install Guruqu launcher icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          base64 --decode tools/icon/guruqu-launcher.webp.gz.b64 > /tmp/guruqu-icon.webp.gz
+          gunzip -c /tmp/guruqu-icon.webp.gz > /tmp/guruqu-icon.webp
+          echo "fda327d57bb27111eff0e36a7f3d72d2a25fd1218921dd870ab5d76a77bc106f  /tmp/guruqu-icon.webp" | sha256sum -c -
+          cp /tmp/guruqu-icon.webp app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp
+          cp /tmp/guruqu-icon.webp app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp
 
       - name: Validate production signing secrets
         shell: bash
@@ -74,22 +85,25 @@ jobs:
             -Pkotlin.compiler.execution.strategy=out-of-process \
             -Dorg.gradle.jvmargs="-Xmx5g -XX:+UseG1GC"
 
-      - name: Verify production APK signing
+      - name: Verify production APK
         shell: bash
         run: |
           set -euo pipefail
           apk="app/build/outputs/apk/release/app-release.apk"
-          test -f "$apk"
+          test -s "$apk"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$BUILD_TOOLS/aapt2" dump badging "$apk" | grep -F "package: name='com.guruqu.pesantren.offline' versionCode='2' versionName='1.0.0'"
+          "$BUILD_TOOLS/zipalign" -c -v 4 "$apk"
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$apk"
-          echo "Production APK:"
-          ls -lh "$apk"
+          sha256sum "$apk" | tee app/build/outputs/apk/release/SHA256SUMS.txt
 
-      - name: Upload production APK
+      - name: Upload production APK and checksum
         uses: actions/upload-artifact@v6
         with:
-          name: Guruqu-Production-Release-APK
-          path: app/build/outputs/apk/release/app-release.apk
+          name: Guruqu-Production-Release-APK-v1.0.0
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
 
