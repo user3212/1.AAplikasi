@@ -10,13 +10,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    // Clean application identity; no Google AI Studio/Gemini naming.
     applicationId = "com.guruqu.pesantren.offline"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
-
+    versionCode = 2
+    versionName = "1.0.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -49,9 +47,9 @@ android {
       if (file(keystorePath).exists() && !storePassword.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
         signingConfig = signingConfigs.getByName("release")
       } else {
-        // The normal CI build remains installable for testing. The dedicated
-        // production-release workflow supplies a real upload keystore and
-        // never falls back to this debug key.
+        // The public web-share workflow uses this only as a fallback so the
+        // APK can be tested without Play Console. Production signing can be
+        // supplied separately through GitHub Actions secrets.
         signingConfig = signingConfigs.getByName("debugConfig")
       }
     }
