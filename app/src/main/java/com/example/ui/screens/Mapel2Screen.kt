@@ -483,7 +483,7 @@ fun Mapel2AbsensiView(
 
     // Rombel filter
     val kelasOptions = remember(santriList) {
-        listOf("-- Pilih Rombel --") + santriList.map { it.kelas }.distinct().filter { it.isNotBlank() }
+        listOf("-- Pilih Rombel --") + santriList.filter { it.halqah == "MAPEL2" }.map { it.kelas }.distinct().filter { it.isNotBlank() }
     }
     var absensiRombel by remember { mutableStateOf("-- Pilih Rombel --") }
     var absensiSearch by remember { mutableStateOf("") }
@@ -494,7 +494,8 @@ fun Mapel2AbsensiView(
         if (absensiRombel == "-- Pilih Rombel --") {
             emptyList()
         } else {
-            santriList.filter { 
+            santriList.filter {
+                it.halqah == "MAPEL2" &&
                 it.kelas == absensiRombel &&
                 (absensiSearch.isEmpty() || it.nama.contains(absensiSearch, ignoreCase = true))
             }.sortedBy { it.nama }
@@ -1192,7 +1193,7 @@ fun Mapel2PenilaianView(
 
     // Rombel & Settings
     val kelasOptions = remember(santriList) {
-        listOf("-- Pilih Rombel --") + santriList.map { it.kelas }.distinct().filter { it.isNotBlank() }
+        listOf("-- Pilih Rombel --") + santriList.filter { it.halqah == "MAPEL2" }.map { it.kelas }.distinct().filter { it.isNotBlank() }
     }
     var selectedRombel by remember { mutableStateOf("-- Pilih Rombel --") }
     var materiTopic by remember { mutableStateOf("") }
@@ -1206,6 +1207,7 @@ fun Mapel2PenilaianView(
             emptyList()
         } else {
             santriList.filter {
+                it.halqah == "MAPEL2" &&
                 it.kelas == selectedRombel &&
                 (searchKeyword.isEmpty() || it.nama.contains(searchKeyword, ignoreCase = true))
             }.sortedBy { it.nama }
