@@ -26,7 +26,7 @@ android {
       if (file(keystorePath).exists()) {
         storeFile = file(keystorePath)
         storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = "upload"
+        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
         keyPassword = System.getenv("KEY_PASSWORD")
       }
     }
@@ -44,9 +44,14 @@ android {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      if (file(keystorePath).exists() && System.getenv("STORE_PASSWORD") != null) {
+      val storePassword = System.getenv("STORE_PASSWORD")
+      val keyPassword = System.getenv("KEY_PASSWORD")
+      if (file(keystorePath).exists() && !storePassword.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
         signingConfig = signingConfigs.getByName("release")
       } else {
+        // The normal CI build remains installable for testing. The dedicated
+        // production-release workflow supplies a real upload keystore and
+        // never falls back to this debug key.
         signingConfig = signingConfigs.getByName("debugConfig")
       }
     }
