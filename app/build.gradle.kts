@@ -10,7 +10,8 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.pesantrenqu.offline"
+    // Clean application identity; no Google AI Studio/Gemini naming.
+    applicationId = "com.guruqu.pesantren.offline"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
