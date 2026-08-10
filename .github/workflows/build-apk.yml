@@ -7,6 +7,9 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build Offline Release APK
@@ -14,17 +17,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Gradle 9.3.1
         shell: bash
@@ -51,13 +54,8 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
           test -f "${GITHUB_WORKSPACE}/debug.keystore"
-          ls -lh "${GITHUB_WORKSPACE}/debug.keystore"
 
       - name: Build Release APK
-        # The repository Gradle Wrapper JAR is rejected by GitHub wrapper validation,
-        # so CI uses the official Gradle 9.3.1 distribution directly.
-        # The generated debug keystore is only a CI fallback for an installable
-        # test artifact; production release signing should use a protected key.
         run: |
           gradle clean assembleRelease \
             --no-daemon \
@@ -81,7 +79,7 @@ jobs:
           ls -lh "${apks[@]}"
 
       - name: Upload Release APK Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: App-Release-APK
           path: app/build/outputs/apk/release/*.apk
