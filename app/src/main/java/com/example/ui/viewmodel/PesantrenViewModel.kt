@@ -583,40 +583,33 @@ class PesantrenViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-        fun importSantriBatch(rawItems: List<Pair<String, String>>) {
+    fun importSantriBatch(rawItems: List<Pair<String, String>>) {
         viewModelScope.launch {
             var count = 0
-            val existing = repository.allSantri.first()
             rawItems.forEach { (nama, kelas) ->
                 if (nama.isNotBlank() && kelas.isNotBlank()) {
-                    val formattedKelas = kelas.trim()
-                    
-                    val exists = existing.any { it.halqah == "UMUM" && it.nama.equals(nama.trim(), ignoreCase = true) && it.kelas.equals(formattedKelas, ignoreCase = true) }
-                    
-                    if (!exists) {
-                        val nextNum = (existing.count { it.halqah == "UMUM" && it.kelas.equals(formattedKelas, ignoreCase = true) } + count) + 1
-                        
-                        val santri = Santri(
-                            nis = "2026${(1000..9999).random()}",
-                            nama = nama.trim(),
-                            gender = "L",
-                            kelas = formattedKelas,
-                            halqah = "UMUM",
-                            status = "Aktif",
-                            catatan = nextNum.toString()
-                        )
-                        repository.insertSantri(santri)
-                        
-                        val existingClasses = masterClasses.value.map { it.namaKelas }
-                        if (!existingClasses.contains(formattedKelas)) {
-                            repository.insertClass(MasterClass(namaKelas = formattedKelas, waliKelas = "Wali Kelas"))
-                        }
-                        
-                        count++
+                    val formattedKelas = if (kelas.startsWith("Kelas", ignoreCase = true)) kelas else "Kelas $kelas"
+                    val santri = Santri(
+                        nis = "2026${(1000..9999).random()}",
+                        nama = nama.trim(),
+                        gender = "L",
+                        kelas = formattedKelas,
+                        halqah = "Halqah Abu Bakar",
+                        status = "Aktif",
+                        catatan = "Import Excel Smart Parser"
+                    )
+                    repository.insertSantri(santri)
+
+                    // Ensure master class is created without duplication
+                    val existingClasses = masterClasses.value.map { it.namaKelas }
+                    if (!existingClasses.contains(formattedKelas)) {
+                        repository.insertClass(MasterClass(namaKelas = formattedKelas, waliKelas = "Wali Kelas"))
                     }
+
+                    count++
                 }
             }
-            showToast("Berhasil impor $count santri baru. Rombel otomatis diperbarui.")
+            showToast("Smart Parser Excel: $count data siswa berhasil diimpor!")
         }
     }
 
@@ -756,39 +749,19 @@ class PesantrenViewModel(application: Application) : AndroidViewModel(applicatio
                 var pbmAttendanceCount = 0
 
                 val existingSantri = repository.allSantri.first()
-                val santriMapByNameAndClass = existingSantri.associateBy { "${it.nama}_${it.kelas}_${it.halqah}" }.toMutableMap()
+                val santriMapByNameAndClass = existingSantri.associateBy { "${it.nama}_${it.kelas}" }.toMutableMap()
 
-                                val existingSubjects = repository.allSubjects.first()
-                suspend fun getOrCreateSantri(nama: String, kelas: String, mapelCategory: String): Long {
-                    val key = "${nama}_${kelas}_${mapelCategory}"
+                suspend fun getOrCreateSantri(nama: String, kelas: String): Long {
+                    val key = "${nama}_${kelas}"
                     val existing = santriMapByNameAndClass[key]
                     if (existing != null) {
                         return existing.id
                     }
-                    val newSantri = com.example.data.model.Santri(nis = "", nama = nama, gender = "L", kelas = kelas, halqah = mapelCategory, status = "Aktif")
+                    val newSantri = com.example.data.model.Santri(nis = "", nama = nama, gender = "L", kelas = kelas, halqah = "", status = "Aktif")
                     val newId = repository.insertSantri(newSantri)
                     santriMapByNameAndClass[key] = newSantri.copy(id = newId)
-                    
-                    if (mapelCategory == "UMUM") {
-                        val existingClasses = masterClasses.value.map { it.namaKelas }
-                        if (!existingClasses.contains(kelas)) {
-                            repository.insertClass(MasterClass(namaKelas = kelas, waliKelas = "Wali Kelas"))
-                        }
-                    }
-                    
                     santriCount++
                     return newId
-                }
-
-                fun resolveMapelCategory(mapel: String): String? {
-                    if (mapel.equals("Mapel SKI", ignoreCase = true)) return "MAPEL1"
-                    if (mapel.equals("Mapel Informatika", ignoreCase = true)) return "MAPEL2"
-                    val found = existingSubjects.find { it.namaMapel.equals(mapel, ignoreCase = true) }
-                    if (found != null) {
-                        if (found.category == "CUSTOM") return "CUSTOM_${found.namaMapel}"
-                        return found.category
-                    }
-                    return null
                 }
 
                 if (root.has("tahfiz")) {
@@ -798,7 +771,7 @@ class PesantrenViewModel(application: Application) : AndroidViewModel(applicatio
                         val nama = obj.optString("nama", "Fulan")
                         val kelas = obj.optString("kelas", "")
                         
-                        val sId = getOrCreateSantri(nama, kelas, "UMUM")
+                        val sId = getOrCreateSantri(nama, kelas)
                         
                         val detail = obj.optJSONObject("detail")
                         if (detail != null) {
@@ -856,15 +829,9 @@ class PesantrenViewModel(application: Application) : AndroidViewModel(applicatio
                         val obj = pbmArray.getJSONObject(i)
                         val nama = obj.optString("nama", "Fulan")
                         val kelas = obj.optString("rombel", "")
-                                                val mapel = obj.optString("mapel", "Mapel")
+                        val mapel = obj.optString("mapel", "Mapel")
                         
-                        val category = resolveMapelCategory(mapel)
-                        if (category == null) {
-                            log.append("❌ GAGAL: Mapel '$mapel' tidak ditemukan untuk santri $nama. Silakan buat Mapel '$mapel' terlebih dahulu di menu Pengaturan.\n")
-                            continue
-                        }
-                        
-                        val sId = getOrCreateSantri(nama, kelas, category)
+                        val sId = getOrCreateSantri(nama, kelas)
                         
                         val detail = obj.optJSONObject("detail")
                         if (detail != null) {
@@ -883,7 +850,7 @@ class PesantrenViewModel(application: Application) : AndroidViewModel(applicatio
                                         val record = com.example.data.model.GradeRecord(
                                             santriId = sId,
                                             santriNama = nama,
-                                            mapelCategory = category,
+                                            mapelCategory = "MAPEL1",
                                             namaMapel = mapel,
                                             tanggal = tanggal,
                                             jenisUjian = materi,
