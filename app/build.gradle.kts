@@ -10,11 +10,12 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.guruqu.pesantren.offline"
+    applicationId = "com.aistudio.pesantrenqu.offline"
     minSdk = 24
     targetSdk = 36
-    versionCode = 2
-    versionName = "1.0.0"
+    versionCode = 1
+    versionName = "1.0"
+
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -24,7 +25,7 @@ android {
       if (file(keystorePath).exists()) {
         storeFile = file(keystorePath)
         storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+        keyAlias = "upload"
         keyPassword = System.getenv("KEY_PASSWORD")
       }
     }
@@ -42,14 +43,9 @@ android {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      val storePassword = System.getenv("STORE_PASSWORD")
-      val keyPassword = System.getenv("KEY_PASSWORD")
-      if (file(keystorePath).exists() && !storePassword.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
+      if (file(keystorePath).exists() && System.getenv("STORE_PASSWORD") != null) {
         signingConfig = signingConfigs.getByName("release")
       } else {
-        // The public web-share workflow uses this only as a fallback so the
-        // APK can be tested without Play Console. Production signing can be
-        // supplied separately through GitHub Actions secrets.
         signingConfig = signingConfigs.getByName("debugConfig")
       }
     }
@@ -85,8 +81,13 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
+  implementation(libs.converter.moshi)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
+  implementation(libs.logging.interceptor)
+  implementation(libs.moshi.kotlin)
+  implementation(libs.okhttp)
+  implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
@@ -104,4 +105,5 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
+  "ksp"(libs.moshi.kotlin.codegen)
 }
